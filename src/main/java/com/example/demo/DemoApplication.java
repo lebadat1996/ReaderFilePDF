@@ -11,9 +11,11 @@ public class DemoApplication {
     public static void main(String[] args) {
         SpringApplication.run(DemoApplication.class, args);
     }
+
     @Bean
     Tesseract getTesseract() {
-        Tesseract tesseract = new Tesseract();
+        Tesseract tesseract = Tesseract.getInstance();
+        tesseract.setLanguage("eng");
         tesseract.setDatapath("./tessdata");
         return tesseract;
     }

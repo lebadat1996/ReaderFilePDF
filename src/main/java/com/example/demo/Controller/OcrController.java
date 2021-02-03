@@ -1,48 +1,50 @@
 package com.example.demo.Controller;
 
+import com.example.demo.Entity.DataOrc;
 import com.example.demo.Entity.OcrResult;
 
+import com.example.demo.Entity.Upload;
 import com.example.demo.Service.OcrService;
+import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+import org.ghost4j.document.DocumentException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.io.*;
 
-@RestController
+@Controller
 public class OcrController {
     @Autowired
     private OcrService ocrService;
 
-    @PostMapping("/upload")
-    public ResponseEntity<OcrResult> upload(@RequestParam("file") MultipartFile file) throws IOException, TesseractException {
-        try {
-            File fileDir = new File("C:\\Users\\Admin\\Desktop\\DemoPDF.txt");
-            Writer out = new BufferedWriter(new OutputStreamWriter(
-                    new FileOutputStream(fileDir), "UTF8"));
-            String result = ocrService.result(file).getResult();
-            for (int i = 0; i < result.length(); i++) {
-                char Kt = result.charAt(i);
-                if (Character.isSpace(Kt)) {
-                    out.append("\r\n");
-                } else {
-                    out.append(Kt);
-                }
-            }
-            out.flush();
-            out.close();
+    @GetMapping("/show")
+    public ModelAndView showForm() {
+        ModelAndView modelAndView = new ModelAndView("index");
+        modelAndView.addObject("data", new DataOrc());
+        return modelAndView;
+    }
 
-        } catch (UnsupportedEncodingException e) {
-            System.out.println(e.getMessage());
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
+    @PostMapping("/uploadFile")
+    public ModelAndView uploadFile(@RequestParam("file") MultipartFile file) throws DocumentException, IOException, TesseractException {
+        DataOrc dataOrc = ocrService.result(file);
+        ModelAndView modelAndView = new ModelAndView("index");
+        if (dataOrc != null) {
+            modelAndView.addObject("message", "success");
+            modelAndView.addObject("data", dataOrc);
+        } else {
+            modelAndView.addObject("message", "no success");
         }
-        return ResponseEntity.ok(ocrService.result(file));
+        return modelAndView;
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<DataOrc> upload(@RequestParam("file") MultipartFile file) throws IOException, TesseractException, DocumentException {
+        return new ResponseEntity<>(ocrService.result(file), HttpStatus.OK);
     }
 }
