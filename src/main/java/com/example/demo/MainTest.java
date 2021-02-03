@@ -1,5 +1,10 @@
 package com.example.demo;
 
+import com.google.zxing.*;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.spire.pdf.PdfDocument;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
@@ -12,20 +17,85 @@ import org.springframework.stereotype.Component;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MainTest {
 
+    // Function to read the QR file
+    public static String readQR(String path, String charset,
+                                Map hashMap)
+            throws FileNotFoundException, IOException,
+            NotFoundException {
+        BinaryBitmap binaryBitmap
+                = new BinaryBitmap(new HybridBinarizer(
+                new BufferedImageLuminanceSource(
+                        ImageIO.read(
+                                new FileInputStream(path)))));
 
-    public static void main(String[] args) throws Exception {
-        MainTest mainTest= new MainTest();
-        mainTest.run();
+        Result result
+                = new MultiFormatReader().decode(binaryBitmap);
+
+        return result.getText();
     }
 
-    private void run() throws Exception {
-        PDDocument document = PDDocument.load(new File("E:\\PdfFile\\Demo.pdf"));
+    public static String readQRCode(String filePath, String charset, Map hintMap)
+            throws FileNotFoundException, IOException, NotFoundException {
+        BinaryBitmap binaryBitmap = new BinaryBitmap(new HybridBinarizer(
+                new BufferedImageLuminanceSource(
+                        ImageIO.read(new FileInputStream(filePath)))));
+        Result qrCodeResult = new MultiFormatReader().decode(binaryBitmap,
+                hintMap);
+        return qrCodeResult.getText();
+    }
+
+    // Driver code
+    public static void main(String[] args)
+            throws WriterException, IOException,
+            NotFoundException {
+
+        // Path where the QR code is saved
+        PdfDocument pdf = new PdfDocument();
+        pdf.loadFromFile("C:/Users/Admin/Downloads/L.C_V1.2.pdf");
+
+        //save every PDF to .png image
+        BufferedImage image;
+        for (int i = 0; i < pdf.getPages().getCount(); i++) {
+            image = pdf.saveAsImage(i);
+            BufferedImage crop = cropImage(image, 600, 20, 170, 100);
+            File file = new File(String.format("ToImage-img-%d.png", i));
+//            File file = File.createTempFile("ToImage-img-%d" + i, ".png");
+            ImageIO.write(crop, "png", file);
+            String charset = "UTF-8";
+
+            Map<EncodeHintType, ErrorCorrectionLevel> hashMap
+                    = new HashMap<EncodeHintType,
+                    ErrorCorrectionLevel>();
+
+            hashMap.put(EncodeHintType.ERROR_CORRECTION,
+                    ErrorCorrectionLevel.L);
+            System.out.println(file.getAbsolutePath());
+            System.out.println(
+                    "QRCode output: "
+                            + readQRCode(file.getAbsolutePath(), charset, hashMap));
+        }
+        pdf.close();
+        // Encoding charset
 
     }
 
+    public static BufferedImage cropImage(BufferedImage bufferedImage, int x, int y, int width, int height) {
+        BufferedImage croppedImage = bufferedImage.getSubimage(x, y, width, height);
+        return croppedImage;
+    }
 
+    public static String demo(BufferedImage bufferedImage, Tesseract tesseract, int page) throws IOException, TesseractException {
+        BufferedImage crop = cropImage(bufferedImage, 1950, 150, 450, 300);
+        File file = new File(String.format("ToImage-img-%d.png", page));
+        ImageIO.write(crop, "png", file);
+        return tesseract.doOCR(file);
+    }
 }
