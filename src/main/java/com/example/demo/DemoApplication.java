@@ -1,5 +1,6 @@
 package com.example.demo;
 
+import com.lowagie.text.pdf.PdfReader;
 import net.sourceforge.tess4j.Tesseract;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,7 +16,7 @@ public class DemoApplication {
     @Bean
     Tesseract getTesseract() {
         Tesseract tesseract = Tesseract.getInstance();
-        tesseract.setLanguage("eng");
+        tesseract.setLanguage("vie");
         tesseract.setDatapath("./tessdata");
         return tesseract;
     }

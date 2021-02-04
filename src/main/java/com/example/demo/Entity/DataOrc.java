@@ -8,6 +8,8 @@ public class DataOrc {
     private String issueDate;
     private String amount;
     private String beneficiary;
+    private String result;
+
     public String getLetterCredit() {
         return letterCredit;
     }

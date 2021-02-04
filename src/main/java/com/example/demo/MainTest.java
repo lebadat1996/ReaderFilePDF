@@ -5,13 +5,19 @@ import com.google.zxing.Reader;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.RandomAccessFileOrArray;
 import com.spire.pdf.PdfDocument;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+import org.apache.pdfbox.cos.COSDocument;
+import org.apache.pdfbox.io.RandomAccessBufferedFileInputStream;
+import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -82,9 +88,32 @@ public class MainTest {
 //        }
 //        pdf.close();
 //        // Encoding charset
-        File file = new File("D:\\demo\\ToImage-img-0.png");
-        readBarcode(file);
+
+        //readBarCode
+//        File file = new File("D:\\demo\\ToImage-img-0.png");
+//        readBarcode(file);
+
+
+        InputStream pdfIs = new FileInputStream("C:/Users/Admin/Downloads/L.C_V1.2.pdf");
+        RandomAccessBufferedFileInputStream rbfi = new RandomAccessBufferedFileInputStream(pdfIs);
+
+
     }
+
+
+    public static String GetPageContent(PdfReader pdfReader, int page) throws IOException {
+        StringBuilder sb = new StringBuilder();
+
+        // from http://www.java2s.com/Open-Source/CSharp/PDF/iTextSharp/iTextSharp/text/pdf/parser/PdfContentReaderTool.cs.htm
+        RandomAccessFileOrArray f = pdfReader.getSafeFile();
+        byte[] contentBytes = pdfReader.getPageContent(page, f);
+        f.close();
+        for (byte b : contentBytes) {
+            sb.append((char) b);
+        }
+        return sb.toString();
+    }
+
 
     public static BufferedImage cropImage(BufferedImage bufferedImage, int x, int y, int width, int height) {
         BufferedImage croppedImage = bufferedImage.getSubimage(x, y, width, height);
