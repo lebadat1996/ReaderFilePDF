@@ -5,6 +5,8 @@ import com.example.demo.Entity.OcrResult;
 
 import com.example.demo.Entity.Upload;
 import com.example.demo.Service.OcrService;
+import com.google.zxing.ChecksumException;
+import com.google.zxing.FormatException;
 import com.google.zxing.NotFoundException;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
@@ -32,7 +34,7 @@ public class OcrController {
     }
 
     @PostMapping("/uploadFile")
-    public ModelAndView uploadFile(@RequestParam("file") MultipartFile file) throws DocumentException, IOException, TesseractException, NotFoundException {
+    public ModelAndView uploadFile(@RequestParam("file") MultipartFile file) throws DocumentException, IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         DataOrc dataOrc = ocrService.result(file);
         ModelAndView modelAndView = new ModelAndView("index");
         if (dataOrc != null) {
@@ -45,7 +47,7 @@ public class OcrController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<DataOrc> upload(@RequestParam("file") MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException {
+    public ResponseEntity<DataOrc> upload(@RequestParam("file") MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException {
         return new ResponseEntity<>(ocrService.result(file), HttpStatus.OK);
     }
 }

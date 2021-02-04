@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import com.google.zxing.*;
+import com.google.zxing.Reader;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
@@ -16,10 +17,7 @@ import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,36 +53,37 @@ public class MainTest {
     // Driver code
     public static void main(String[] args)
             throws WriterException, IOException,
-            NotFoundException {
+            NotFoundException, FormatException, ChecksumException {
 
-        // Path where the QR code is saved
-        PdfDocument pdf = new PdfDocument();
-        pdf.loadFromFile("C:/Users/Admin/Downloads/L.C_V1.2.pdf");
-
-        //save every PDF to .png image
-        BufferedImage image;
-        for (int i = 0; i < pdf.getPages().getCount(); i++) {
-            image = pdf.saveAsImage(i);
-            BufferedImage crop = cropImage(image, 600, 20, 170, 100);
-            File file = new File(String.format("ToImage-img-%d.png", i));
-//            File file = File.createTempFile("ToImage-img-%d" + i, ".png");
-            ImageIO.write(crop, "png", file);
-            String charset = "UTF-8";
-
-            Map<EncodeHintType, ErrorCorrectionLevel> hashMap
-                    = new HashMap<EncodeHintType,
-                    ErrorCorrectionLevel>();
-
-            hashMap.put(EncodeHintType.ERROR_CORRECTION,
-                    ErrorCorrectionLevel.L);
-            System.out.println(file.getAbsolutePath());
-            System.out.println(
-                    "QRCode output: "
-                            + readQRCode(file.getAbsolutePath(), charset, hashMap));
-        }
-        pdf.close();
-        // Encoding charset
-
+//        // Path where the QR code is saved
+//        PdfDocument pdf = new PdfDocument();
+//        pdf.loadFromFile("C:/Users/Admin/Downloads/L.C_V1.2.pdf");
+//
+//        //save every PDF to .png image
+//        BufferedImage image;
+//        for (int i = 0; i < pdf.getPages().getCount(); i++) {
+//            image = pdf.saveAsImage(i);
+//            BufferedImage crop = cropImage(image, 600, 20, 170, 100);
+//            File file = new File(String.format("ToImage-img-%d.png", i));
+////            File file = File.createTempFile("ToImage-img-%d" + i, ".png");
+//            ImageIO.write(crop, "png", file);
+//            String charset = "UTF-8";
+//
+//            Map<EncodeHintType, ErrorCorrectionLevel> hashMap
+//                    = new HashMap<EncodeHintType,
+//                    ErrorCorrectionLevel>();
+//
+//            hashMap.put(EncodeHintType.ERROR_CORRECTION,
+//                    ErrorCorrectionLevel.L);
+//            System.out.println(file.getAbsolutePath());
+//            System.out.println(
+//                    "QRCode output: "
+//                            + readQRCode(file.getAbsolutePath(), charset, hashMap));
+//        }
+//        pdf.close();
+//        // Encoding charset
+        File file = new File("D:\\demo\\ToImage-img-0.png");
+        readBarcode(file);
     }
 
     public static BufferedImage cropImage(BufferedImage bufferedImage, int x, int y, int width, int height) {
@@ -93,9 +92,20 @@ public class MainTest {
     }
 
     public static String demo(BufferedImage bufferedImage, Tesseract tesseract, int page) throws IOException, TesseractException {
-        BufferedImage crop = cropImage(bufferedImage, 1950, 150, 450, 300);
+        BufferedImage crop = cropImage(bufferedImage, 1910, 150, 450, 300);
         File file = new File(String.format("ToImage-img-%d.png", page));
         ImageIO.write(crop, "png", file);
         return tesseract.doOCR(file);
+    }
+
+    public static void readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
+        InputStream barCodeInputStream = new FileInputStream(file);
+        BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
+
+        LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
+        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+        Reader reader = new MultiFormatReader();
+        Result re = reader.decode(bitmap);
+        System.out.println("Barcode text is " + re.getText());
     }
 }
