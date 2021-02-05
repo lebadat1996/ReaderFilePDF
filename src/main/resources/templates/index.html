@@ -27,7 +27,6 @@
         <th scope="col">issueDate</th>
         <th scope="col">amount</th>
         <th scope="col">Beneficiary</th>
-        <th scope="col">Result</th>
     </tr>
     </thead>
     <tbody>
@@ -37,7 +36,25 @@
         <td><p th:text="${d.issueDate}"/></td>
         <td><p th:text="${d.amount}"/></td>
         <td><p th:text="${d.beneficiary}"/></td>
-        <td><p th:text="${d.result}"></p></td>
+    </tr>
+    </tbody>
+</table>
+<hr>
+<table class="table" border="2">
+    <thead>
+    <tr>
+        <th scope="col">id</th>
+        <th scope="col">Cmnd</th>
+        <th scope="col">Address</th>
+        <th scope="col">formOfCredit</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="d :  ${data}">
+        <th scope="col">1</th>
+        <td><p th:text="${d.cmnd}"></p></td>
+        <td><p th:text="${d.address}"></p></td>
+        <td><p th:text="${d.formOfCredit}"></p></td>
     </tr>
     </tbody>
 </table>

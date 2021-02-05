@@ -16,7 +16,7 @@ public class DemoApplication {
     @Bean
     Tesseract getTesseract() {
         Tesseract tesseract = Tesseract.getInstance();
-        tesseract.setLanguage("vie");
+        tesseract.setLanguage("eng");
         tesseract.setDatapath("./tessdata");
         return tesseract;
     }

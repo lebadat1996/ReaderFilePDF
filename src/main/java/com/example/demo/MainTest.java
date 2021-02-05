@@ -94,8 +94,8 @@ public class MainTest {
 //        readBarcode(file);
 
 
-        InputStream pdfIs = new FileInputStream("C:/Users/Admin/Downloads/L.C_V1.2.pdf");
-        RandomAccessBufferedFileInputStream rbfi = new RandomAccessBufferedFileInputStream(pdfIs);
+
+        readCheckBox("C:/Users/Admin/Downloads/MB01_LENH_CHUYEN_TIEN_BARCODE_v3.1.pdf");
 
 
     }
@@ -136,5 +136,30 @@ public class MainTest {
         Reader reader = new MultiFormatReader();
         Result re = reader.decode(bitmap);
         System.out.println("Barcode text is " + re.getText());
+    }
+
+    public static void readCheckBox(String path) throws IOException {
+        InputStream pdfIs = new FileInputStream(path);
+        RandomAccessBufferedFileInputStream rbfi = new RandomAccessBufferedFileInputStream(pdfIs);
+
+        PDFParser parser = new PDFParser(rbfi);
+        parser.parse();
+        try (COSDocument cosDoc = parser.getDocument()) {
+            PDFTextStripper pdfStripper = new PDFTextStripper();
+            PDDocument pdDoc = new PDDocument(cosDoc);
+            String parsedText = pdfStripper.getText(pdDoc);
+            //System.out.println("Full text"+parsedText);
+
+            for (int i = 0; i < parsedText.length(); i++) {
+                if ('☒' == parsedText.charAt(i)) {
+                    System.out.println("Found a checked box at index " + i);
+                    System.out.println("\\u" + Integer.toHexString(parsedText.charAt(i) | 0x10000).substring(1));
+                } else if ('☐' == parsedText.charAt(i)) {
+                    System.out.println("Found an unchecked box at index " + i);
+                    System.out.println("\\u" + Integer.toHexString(parsedText.charAt(i) | 0x10000).substring(1));
+                }
+                //else {//skip}
+            }
+        }
     }
 }

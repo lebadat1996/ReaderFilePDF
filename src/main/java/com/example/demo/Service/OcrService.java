@@ -37,10 +37,13 @@ public class OcrService implements OcrServiceImpl {
         File convFile = convert(file);
         PDDocument document = PDDocument.load(convFile);
         String codeQr = checkQRPdf(document);
+        System.out.println("BarCode: " + codeQr);
         DataOrc dataOrc = new DataOrc();
         switch (codeQr) {
             case "TTQT_TTTM_0001":
                 String ttqt01 = extractTextFromScannedDocument(document, tesseract);
+                String[] ttq = ttqt01.split("\\s");
+                dataOrc.setFormOfCredit(checkBox(ttq));
                 dataOrc.setResult(ttqt01);
                 break;
             case "TTQT_TTTM_0002":
@@ -50,11 +53,25 @@ public class OcrService implements OcrServiceImpl {
                 dataOrc.setLetterCredit(data[6]);
                 dataOrc.setIssueDate(data[13]);
                 dataOrc.setBeneficiary(concat(data));
+                dataOrc.setResult(txt);
                 break;
             case "TTQT_CTQT_0001":
                 String re = extractTextFromScannedDocument(document, tesseract);
+                System.out.println(re);
+                String[] s = re.split("\\s");
+                for (String s1 : s) {
+                    System.out.println(s1);
+                }
+                String address = address(s);
+                String cmnd = cmnd(s);
+                System.out.println(cmnd);
+                dataOrc.setAddress(address);
+                dataOrc.setCmnd(cmnd);
                 dataOrc.setResult(re);
                 break;
+            default:
+                String str = extractTextFromScannedDocument(document, tesseract);
+                dataOrc.setResult(str);
         }
         return dataOrc;
     }
@@ -80,13 +97,13 @@ public class OcrService implements OcrServiceImpl {
         String code = checkQRPdf(document);
         switch (code) {
             case "TTQT_TTTM_0001":
-                rectangle = new Rectangle();
+                rectangle = new Rectangle(100, 800, 2000, 300);
                 break;
             case "TTQT_TTTM_0002":
                 rectangle = new Rectangle(300, 800, 1800, 400);
                 break;
             case "TTQT_CTQT_0001":
-                rectangle = new Rectangle(20, 100, 1801, 400);
+                rectangle = new Rectangle(130, 800, 1801, 300);
                 break;
         }
         return rectangle;
@@ -128,21 +145,60 @@ public class OcrService implements OcrServiceImpl {
     }
 
     public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
-        InputStream barCodeInputStream = new FileInputStream(file);
-        BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
-
-        LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
-        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
-        Reader reader = new MultiFormatReader();
-        Result re = reader.decode(bitmap);
-        if (re.getText() != null) {
-            System.out.println("Barcode text is " + re.getText());
-            return re.getText();
-        } else {
-            return "";
+        try {
+            InputStream barCodeInputStream = new FileInputStream(file);
+            BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
+            BinaryBitmap bitmap = null;
+            LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
+            bitmap = new BinaryBitmap(new HybridBinarizer(source));
+            Reader reader = new MultiFormatReader();
+            Result re = reader.decode(bitmap);
+            if (re.getText() != null) {
+                return re.getText();
+            } else {
+                return "";
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e);
         }
+        return "";
     }
 
+    public static String checkBox(String[] data) {
+        StringBuilder str = new StringBuilder();
+        str.append(data[21]);
+        str.append(data[22]);
+        str.append(" ");
+        str.append(data[23]);
+        str.append(data[24]);
+        str.append(" ");
+        str.append(data[25]);
+        return str.toString().replace("IOther","Other");
+    }
+
+    public static String cmnd(String[] data) {
+        StringBuilder str = new StringBuilder();
+        str.append(data[12]);
+        str.append(" ");
+        str.append(data[13]);
+        str.append(" ");
+        str.append(data[14]);
+        str.append(" ");
+        str.append(data[15]);
+        str.append(" ");
+        str.append(data[16]);
+        return str.toString();
+    }
+
+    public static String address(String[] data) {
+        StringBuilder str = new StringBuilder();
+        for (int i = 34; i <= 44; i++) {
+            str.append(data[i]);
+            str.append(" ");
+        }
+        return str.substring(0, str.length() - 1);
+    }
 
     public static String concat(String[] data) {
         StringBuilder str = new StringBuilder();

@@ -9,6 +9,9 @@ public class DataOrc {
     private String amount;
     private String beneficiary;
     private String result;
+    private String cmnd;
+    private String address;
+    private String formOfCredit;
 
     public String getLetterCredit() {
         return letterCredit;
