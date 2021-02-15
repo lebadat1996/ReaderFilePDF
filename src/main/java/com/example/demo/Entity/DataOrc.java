@@ -12,6 +12,7 @@ public class DataOrc {
     private String cmnd;
     private String address;
     private String formOfCredit;
+    private String barCode;
 
     public String getLetterCredit() {
         return letterCredit;

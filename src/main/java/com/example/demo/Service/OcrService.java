@@ -36,42 +36,44 @@ public class OcrService implements OcrServiceImpl {
     public DataOrc result(MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException {
         File convFile = convert(file);
         PDDocument document = PDDocument.load(convFile);
-        String codeQr = checkQRPdf(document);
-        System.out.println("BarCode: " + codeQr);
         DataOrc dataOrc = new DataOrc();
-        switch (codeQr) {
-            case "TTQT_TTTM_0001":
-                String ttqt01 = extractTextFromScannedDocument(document, tesseract);
-                String[] ttq = ttqt01.split("\\s");
-                dataOrc.setFormOfCredit(checkBox(ttq));
-                dataOrc.setResult(ttqt01);
-                break;
-            case "TTQT_TTTM_0002":
-                String txt = extractTextFromScannedDocument(document, tesseract);
-                String[] data = txt.split("\\s");
-                dataOrc.setAmount(data[20]);
-                dataOrc.setLetterCredit(data[6]);
-                dataOrc.setIssueDate(data[13]);
-                dataOrc.setBeneficiary(concat(data));
-                dataOrc.setResult(txt);
-                break;
-            case "TTQT_CTQT_0001":
-                String re = extractTextFromScannedDocument(document, tesseract);
-                System.out.println(re);
-                String[] s = re.split("\\s");
-                for (String s1 : s) {
-                    System.out.println(s1);
-                }
-                String address = address(s);
-                String cmnd = cmnd(s);
-                System.out.println(cmnd);
-                dataOrc.setAddress(address);
-                dataOrc.setCmnd(cmnd);
-                dataOrc.setResult(re);
-                break;
-            default:
-                String str = extractTextFromScannedDocument(document, tesseract);
-                dataOrc.setResult(str);
+        try {
+            String codeQr = checkQRPdf(document);
+            System.out.println("BarCode: " + codeQr);
+            switch (codeQr) {
+                case "TTQT_TTTM_0001":
+                    String ttqt01 = extractTextFromScannedDocument(document, tesseract);
+                    String[] ttq = ttqt01.split("\\s");
+                    dataOrc.setFormOfCredit(checkBox(ttq));
+                    dataOrc.setResult(ttqt01);
+                    dataOrc.setBarCode(codeQr);
+                    break;
+                case "TTQT_TTTM_0002":
+                    String txt = extractTextFromScannedDocument(document, tesseract);
+                    String[] data = txt.split("\\s");
+                    dataOrc.setAmount(data[20]);
+                    dataOrc.setLetterCredit(data[6]);
+                    dataOrc.setIssueDate(data[13]);
+                    dataOrc.setBeneficiary(concat(data));
+                    dataOrc.setResult(txt);
+                    dataOrc.setBarCode(codeQr);
+                    break;
+                case "TTQT_CTQT_0001":
+                    String re = extractTextFromScannedDocument(document, tesseract);
+                    String[] s = re.split("\\s");
+                    String address = address(s);
+                    String cmnd = cmnd(s);
+                    dataOrc.setAddress(address);
+                    dataOrc.setCmnd(cmnd);
+                    dataOrc.setResult(re);
+                    dataOrc.setBarCode(codeQr);
+                    break;
+                default:
+                    String str = extractTextFromScannedDocument(document, tesseract);
+                    dataOrc.setResult(str);
+            }
+        } finally {
+            document.close();
         }
         return dataOrc;
     }
@@ -174,7 +176,7 @@ public class OcrService implements OcrServiceImpl {
         str.append(data[24]);
         str.append(" ");
         str.append(data[25]);
-        return str.toString().replace("IOther","Other");
+        return str.toString().replace("IOther", "Other");
     }
 
     public static String cmnd(String[] data) {
