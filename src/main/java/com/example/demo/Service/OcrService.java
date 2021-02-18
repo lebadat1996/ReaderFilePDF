@@ -11,6 +11,7 @@ import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.RandomAccessFileOrArray;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
+import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -81,15 +82,20 @@ public class OcrService implements OcrServiceImpl {
     public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         StringBuilder out = new StringBuilder();
+        BufferedImage bufferedImage = null;
         for (int page = 0; page < document.getNumberOfPages(); page++) {
-            BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
-//            BufferedImage crop = crop(document, bufferedImage, pdfRenderer, page);
+            bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
             Rectangle rectangle = getRectangle(document);
             ImageIO.write(bufferedImage, "png", tempFile);
             String result = tesseract.doOCR(tempFile, rectangle);
             out.append(result);
+            if (result.equals("")) {
+                page = page + 1;
+                System.out.println(page);
+            }
         }
+
         return out.toString();
     }
 
@@ -98,9 +104,9 @@ public class OcrService implements OcrServiceImpl {
         Rectangle rectangle = null;
         String code = checkQRPdf(document);
         switch (code) {
-            case "TTQT_TTTM_0001":
-                rectangle = new Rectangle(100, 800, 2000, 300);
-                break;
+//            case "TTQT_TTTM_0001":
+//                rectangle = new Rectangle(100, 800, 2000, 300);
+//                break;
             case "TTQT_TTTM_0002":
                 rectangle = new Rectangle(300, 800, 1800, 400);
                 break;
