@@ -12,19 +12,25 @@ import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.cos.COSDocument;
+import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.RandomAccessBufferedFileInputStream;
+import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class MainTest {
@@ -59,7 +65,7 @@ public class MainTest {
     // Driver code
     public static void main(String[] args)
             throws WriterException, IOException,
-            NotFoundException, FormatException, ChecksumException {
+            NotFoundException, FormatException, ChecksumException, TesseractException {
 
 //        // Path where the QR code is saved
 //        PdfDocument pdf = new PdfDocument();
@@ -88,18 +94,45 @@ public class MainTest {
 //        }
 //        pdf.close();
 //        // Encoding charset
+//
+//        readBarCode
+//        File file = new File("C:\\Users\\datlb\\Downloads\\MẪU YÊU CẦU PHÁT HÀNH L.C_V1.1.pdf");
+//        FileInputStream input = new FileInputStream(file);
+//        MultipartFile multipartFile = new MockMultipartFile("file",
+//                file.getName(), "text/plain", IOUtils.toByteArray(input));
+//        File convert = convert(multipartFile);
+//        PDDocument document = PDDocument.load(convert);
+//        checkQRPdf(document);
+        convertPDFtoImage("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
 
-        //readBarCode
-//        File file = new File("D:\\demo\\ToImage-img-0.png");
-//        readBarcode(file);
+//        readCheckBox("C:/Users/Admin/Downloads/MB01_LENH_CHUYEN_TIEN_BARCODE_v3.1.pdf");
 
+        //Loading an existing PDF document
+//        File file = new File("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
+//        PDDocument document = PDDocument.load(file);
 
-
-        readCheckBox("C:/Users/Admin/Downloads/MB01_LENH_CHUYEN_TIEN_BARCODE_v3.1.pdf");
-
-
+        // Create a Splitter object
+//        Splitter splitter = new Splitter();
+//
+//        splitter.setSplitAtPage(5);
+////        p2 = splitter.setSplitAtPage(3);
+//        //splitting the pages of a PDF document
+//        List<PDDocument> Pages = splitter.split(document);
+//
+//        //Creating an iterator object
+//        Iterator<PDDocument> iterator = Pages.listIterator();
+//
+//        //saving splits as individual PDF document
+//        int i = 1;
+//        while (iterator.hasNext()) {
+//            PDDocument pd = iterator.next();
+//            pd.save("C:\\Users\\datlb\\Downloads\\" + i++ + ".pdf");
+//        }
+//        System.out.println("Multiple PDF files are created successfully.");
+//        document.close();
+//    }
+//
     }
-
 
     public static String GetPageContent(PdfReader pdfReader, int page) throws IOException {
         StringBuilder sb = new StringBuilder();
@@ -127,7 +160,49 @@ public class MainTest {
         return tesseract.doOCR(file);
     }
 
-    public static void readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
+    public static File convert(MultipartFile file) throws IOException {
+        File convFile = new File(file.getOriginalFilename());
+        if (convFile.createNewFile()) {
+            System.out.println("File is created!");
+        } else {
+            System.out.println("File already exists.");
+        }
+        FileOutputStream fos = new FileOutputStream(convFile);
+        fos.write(file.getBytes());
+        fos.close();
+        return convFile;
+    }
+
+    public static String checkQRPdf(PDDocument document) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+        PDFRenderer pdfRenderer = new PDFRenderer(document);
+        StringBuilder out = new StringBuilder();
+        for (int page = 0; page < document.getNumberOfPages(); page++) {
+            BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+            BufferedImage crop = cropImage(bufferedImage, 1860, 50, 550, 300);
+            File file = new File(String.format("ToImage-img-%d.png", page));
+            ImageIO.write(crop, "png", file);
+            String result = readBarcode(file);
+            out.append(result);
+            if (result != null) {
+                return out.toString();
+            }
+        }
+        return out.toString();
+    }
+
+    public static void convertPDFtoImage(String path) throws IOException {
+        PdfDocument pdfDocument = new PdfDocument();
+        pdfDocument.loadFromFile(path);
+        BufferedImage image = null;
+        for (int i = 0; i < pdfDocument.getPages().getCount(); i++) {
+            image = pdfDocument.saveAsImage(i);
+            File file = new File(String.format("ToImage-img-%d.png", i));
+            ImageIO.write(image, "png", file);
+        }
+        pdfDocument.close();
+    }
+
+    public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
         InputStream barCodeInputStream = new FileInputStream(file);
         BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
 
@@ -136,6 +211,7 @@ public class MainTest {
         Reader reader = new MultiFormatReader();
         Result re = reader.decode(bitmap);
         System.out.println("Barcode text is " + re.getText());
+        return re.getText().toString();
     }
 
     public static void readCheckBox(String path) throws IOException {

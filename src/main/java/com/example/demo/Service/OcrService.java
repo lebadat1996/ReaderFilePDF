@@ -12,6 +12,7 @@ import com.lowagie.text.pdf.RandomAccessFileOrArray;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.cos.COSDocument;
+import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -24,8 +25,8 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.List;
 
 
 @Service
@@ -43,14 +44,14 @@ public class OcrService implements OcrServiceImpl {
             System.out.println("BarCode: " + codeQr);
             switch (codeQr) {
                 case "TTQT_TTTM_0001":
-                    String ttqt01 = extractTextFromScannedDocument(document, tesseract);
+                    String ttqt01 = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
                     String[] ttq = ttqt01.split("\\s");
                     dataOrc.setFormOfCredit(checkBox(ttq));
                     dataOrc.setResult(ttqt01);
                     dataOrc.setBarCode(codeQr);
                     break;
                 case "TTQT_TTTM_0002":
-                    String txt = extractTextFromScannedDocument(document, tesseract);
+                    String txt = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
                     String[] data = txt.split("\\s");
                     dataOrc.setAmount(data[20]);
                     dataOrc.setLetterCredit(data[6]);
@@ -60,7 +61,7 @@ public class OcrService implements OcrServiceImpl {
                     dataOrc.setBarCode(codeQr);
                     break;
                 case "TTQT_CTQT_0001":
-                    String re = extractTextFromScannedDocument(document, tesseract);
+                    String re = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
                     String[] s = re.split("\\s");
                     String address = address(s);
                     String cmnd = cmnd(s);
@@ -70,7 +71,7 @@ public class OcrService implements OcrServiceImpl {
                     dataOrc.setBarCode(codeQr);
                     break;
                 default:
-                    String str = extractTextFromScannedDocument(document, tesseract);
+                    String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
                     dataOrc.setResult(str);
             }
         } finally {
@@ -79,23 +80,30 @@ public class OcrService implements OcrServiceImpl {
         return dataOrc;
     }
 
-    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String filePath) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         StringBuilder out = new StringBuilder();
         BufferedImage bufferedImage = null;
+        String result = null;
+        List<Integer> index = new ArrayList<>();
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
             Rectangle rectangle = getRectangle(document);
             ImageIO.write(bufferedImage, "png", tempFile);
-            String result = tesseract.doOCR(tempFile, rectangle);
+            result = tesseract.doOCR(tempFile, rectangle);
             out.append(result);
+
             if (result.equals("")) {
-                page = page + 1;
-                System.out.println(page);
+//                document.removePage(page);
+//                document.save("C:\\Users\\datlb\\Downloads");
+                splitFilePdf(filePath, page);
+                System.out.println(result);
+                System.out.println("page: " + (page + 1));
+                document.close();
+                break;
             }
         }
-
         return out.toString();
     }
 
@@ -104,9 +112,9 @@ public class OcrService implements OcrServiceImpl {
         Rectangle rectangle = null;
         String code = checkQRPdf(document);
         switch (code) {
-//            case "TTQT_TTTM_0001":
-//                rectangle = new Rectangle(100, 800, 2000, 300);
-//                break;
+            case "TTQT_TTTM_0001":
+                rectangle = new Rectangle(100, 800, 2000, 300);
+                break;
             case "TTQT_TTTM_0002":
                 rectangle = new Rectangle(300, 800, 1800, 400);
                 break;
@@ -150,6 +158,25 @@ public class OcrService implements OcrServiceImpl {
         fos.write(file.getBytes());
         fos.close();
         return convFile;
+    }
+
+    public static List<PDDocument> splitFilePdf(String filePath, int index) throws IOException {
+        File file = new File(filePath);
+        PDDocument document = PDDocument.load(file);
+        Splitter splitter = new Splitter();
+        splitter.setSplitAtPage(index);
+        List<PDDocument> Pages = splitter.split(document);
+        Iterator<PDDocument> iterator = Pages.listIterator();
+        int i = 1;
+        List<PDDocument> list = new ArrayList<>();
+        while (iterator.hasNext()) {
+            PDDocument pd = iterator.next();
+            pd.save("C:\\Users\\datlb\\Downloads\\" + i++ + ".pdf");
+            list.add(pd);
+        }
+        System.out.println("Multiple PDF files are created successfully.");
+        document.close();
+        return list;
     }
 
     public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
