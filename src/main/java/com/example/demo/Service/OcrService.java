@@ -36,39 +36,42 @@ public class OcrService implements OcrServiceImpl {
         DataOrc dataOrc = new DataOrc();
         try {
             List<String> codeQr = checkQRPdf(document);
-            System.out.println("BarCode: " + codeQr);
             if (codeQr != null) {
                 for (String qr : codeQr) {
+                    System.out.println("code: " + qr);
                     switch (qr) {
                         case "TTQT_TTTM_0001":
-                            String ttqt01 = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
+                            String ttqt01 = extractTextFromScannedDocument(document, tesseract, convFile.getPath(),qr);
                             String[] ttq = ttqt01.split("\\s");
                             dataOrc.setFormOfCredit(checkBox(ttq));
                             dataOrc.setResult(ttqt01);
                             dataOrc.setBarCode(qr);
+                            System.out.println("1");
                             break;
                         case "TTQT_TTTM_0002":
-                            String txt = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
-                            String[] data = txt.split("\\s");
-                            dataOrc.setAmount(data[20]);
-                            dataOrc.setLetterCredit(data[6]);
-                            dataOrc.setIssueDate(data[13]);
-                            dataOrc.setBeneficiary(concat(data));
-                            dataOrc.setResult(txt);
-                            dataOrc.setBarCode(qr);
+//                            String txt = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
+//                            String[] data = txt.split("\\s");
+//                            dataOrc.setAmount(data[20]);
+//                            dataOrc.setLetterCredit(data[6]);
+//                            dataOrc.setIssueDate(data[13]);
+//                            dataOrc.setBeneficiary(concat(data));
+//                            dataOrc.setResult(txt);
+//                            dataOrc.setBarCode(qr);
+                            System.out.println("2");
                             break;
                         case "TTQT_CTQT_0001":
-                            String re = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
-                            String[] s = re.split("\\s");
-                            String address = address(s);
-                            String cmnd = cmnd(s);
-                            dataOrc.setAddress(address);
-                            dataOrc.setCmnd(cmnd);
-                            dataOrc.setResult(re);
-                            dataOrc.setBarCode(qr);
+//                            String re = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
+//                            String[] s = re.split("\\s");
+//                            String address = address(s);
+//                            String cmnd = cmnd(s);
+//                            dataOrc.setAddress(address);
+//                            dataOrc.setCmnd(cmnd);
+//                            dataOrc.setResult(re);
+//                            dataOrc.setBarCode(qr);
+                            System.out.println("3");
                             break;
                         default:
-                            String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
+                            String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath(),qr);
                             dataOrc.setResult(str);
                     }
                 }
@@ -80,7 +83,7 @@ public class OcrService implements OcrServiceImpl {
         return dataOrc;
     }
 
-    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String filePath) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String filePath, String code) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         StringBuilder out = new StringBuilder();
         BufferedImage bufferedImage = null;
@@ -89,40 +92,32 @@ public class OcrService implements OcrServiceImpl {
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
-            Rectangle rectangle = getRectangle(document);
+            Rectangle rectangle = getRectangle(code);
             ImageIO.write(bufferedImage, "png", tempFile);
             result = tesseract.doOCR(tempFile, rectangle);
             out.append(result);
-            if (result.equals("")) {
-                splitFilePdf(filePath, page);
-                System.out.println("page: " + page);
-            }
         }
         return out.toString();
     }
 
 
-    public static Rectangle getRectangle(PDDocument document) throws TesseractException, FormatException, ChecksumException, NotFoundException, IOException {
+    public static Rectangle getRectangle(String code) throws TesseractException, FormatException, ChecksumException, NotFoundException, IOException {
         try {
             Rectangle rectangle = null;
-            List<String> codes = checkQRPdf(document);
-            if (codes != null) {
-                for (String c : codes) {
-                    switch (c) {
-                        case "TTQT_TTTM_0001":
-                            rectangle = new Rectangle(100, 800, 2000, 300);
-                            break;
-                        case "TTQT_TTTM_0002":
-                            rectangle = new Rectangle(300, 800, 1800, 400);
-                            break;
-                        case "TTQT_CTQT_0001":
-                            rectangle = new Rectangle(130, 800, 1801, 300);
-                            break;
-                    }
-                }
-                return rectangle;
+            switch (code) {
+                case "TTQT_TTTM_0001":
+                    rectangle = new Rectangle(100, 800, 2000, 300);
+                    break;
+                case "TTQT_TTTM_0002":
+                    rectangle = new Rectangle(300, 800, 1800, 400);
+                    break;
+                case "TTQT_CTQT_0001":
+                    rectangle = new Rectangle(130, 800, 1801, 300);
+                    break;
             }
-        } catch (Exception e) {
+            return rectangle;
+        } catch (
+                Exception e) {
             e.printStackTrace();
         }
         return null;
