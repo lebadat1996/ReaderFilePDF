@@ -26,6 +26,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.HashMap;
@@ -64,8 +65,7 @@ public class MainTest {
 
     // Driver code
     public static void main(String[] args)
-            throws WriterException, IOException,
-            NotFoundException, FormatException, ChecksumException, TesseractException {
+            throws Exception {
 
 //        // Path where the QR code is saved
 //        PdfDocument pdf = new PdfDocument();
@@ -96,15 +96,18 @@ public class MainTest {
 //        // Encoding charset
 //
 //        readBarCode
-//        File file = new File("C:\\Users\\datlb\\Downloads\\MẪU YÊU CẦU PHÁT HÀNH L.C_V1.1.pdf");
+//        File file = new File("C:\\Users\\datlb\\Downloads\\1.pdf");
 //        FileInputStream input = new FileInputStream(file);
 //        MultipartFile multipartFile = new MockMultipartFile("file",
 //                file.getName(), "text/plain", IOUtils.toByteArray(input));
 //        File convert = convert(multipartFile);
 //        PDDocument document = PDDocument.load(convert);
-//        checkQRPdf(document);
-        convertPDFtoImage("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
-
+////        checkQRPdf(document);
+////        convertPDFtoImage("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
+//        Tesseract tesseract = new Tesseract();
+//        tesseract.setDatapath("./tessdata");
+//        String result = extractTextFromScannedDocument(document, tesseract, null);
+//        System.out.println(result);
 //        readCheckBox("C:/Users/Admin/Downloads/MB01_LENH_CHUYEN_TIEN_BARCODE_v3.1.pdf");
 
         //Loading an existing PDF document
@@ -132,6 +135,25 @@ public class MainTest {
 //        document.close();
 //    }
 //
+
+    }
+
+
+    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String filePath) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+        PDFRenderer pdfRenderer = new PDFRenderer(document);
+        StringBuilder out = new StringBuilder();
+        BufferedImage bufferedImage = null;
+        String result = null;
+        System.out.println(document.getNumberOfPages());
+        for (int page = 0; page < document.getNumberOfPages(); page++) {
+            bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+            File tempFile = File.createTempFile("tempfile_" + page, ".png");
+            Rectangle rectangle = new Rectangle(100, 800, 2000, 300);
+            ImageIO.write(bufferedImage, "png", tempFile);
+            result = tesseract.doOCR(tempFile, rectangle);
+            out.append(result);
+        }
+        return out.toString();
     }
 
     public static String GetPageContent(PdfReader pdfReader, int page) throws IOException {
