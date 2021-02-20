@@ -94,7 +94,7 @@ public class OcrService implements OcrServiceImpl {
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
             Rectangle rectangle = getRectangle(code);
             ImageIO.write(bufferedImage, "png", tempFile);
-            result = tesseract.doOCR(tempFile, rectangle);
+            result = tesseract.doOCR(tempFile);
             out.append(result);
         }
         return out.toString();
@@ -129,7 +129,7 @@ public class OcrService implements OcrServiceImpl {
             List<String> barcodes = new ArrayList<>();
             for (int page = 0; page < document.getNumberOfPages(); page++) {
                 BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
-                BufferedImage crop = cropImage(bufferedImage, 1860, 50, 550, 300);
+                BufferedImage crop = cropImage(bufferedImage, 1860, 55, 550, 320);
                 File file = new File(String.format("ToImage-img-%d.png", page));
                 ImageIO.write(crop, "png", file);
                 String result = readBarcode(file);
