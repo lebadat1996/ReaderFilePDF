@@ -32,23 +32,26 @@ public class OcrService implements OcrServiceImpl {
     @Override
     public DataOrc result(MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException {
         File convFile = convert(file);
-        PDDocument document = PDDocument.load(convFile);
+        PDDocument pDdocument = PDDocument.load(convFile);
+        List<PDDocument> documents = Documents(pDdocument, tesseract, convFile.getPath());
         DataOrc dataOrc = new DataOrc();
         try {
-            List<String> codeQr = checkQRPdf(document);
-            if (codeQr != null) {
-                for (String qr : codeQr) {
-                    System.out.println("code: " + qr);
-                    switch (qr) {
-                        case "TTQT_TTTM_0001":
-                            String ttqt01 = extractTextFromScannedDocument(document, tesseract, convFile.getPath(),qr);
-                            String[] ttq = ttqt01.split("\\s");
-                            dataOrc.setFormOfCredit(checkBox(ttq));
-                            dataOrc.setResult(ttqt01);
-                            dataOrc.setBarCode(qr);
-                            System.out.println("1");
-                            break;
-                        case "TTQT_TTTM_0002":
+            for (PDDocument document1 : documents) {
+                List<String> codeQr = checkQRPdf(document1);
+                if (codeQr != null) {
+                    for (String qr : codeQr) {
+                        System.out.println("code: " + qr);
+                        switch (qr) {
+                            case "TTQT_TTTM_0001":
+//                            String ttqt01 = extractTextFromScannedDocument(document, tesseract, convFile.getPath(), qr);
+//                            String[] ttq = ttqt01.split("\\s");
+//                            dataOrc.setFormOfCredit(checkBox(ttq));
+//                            dataOrc.setResult(ttqt01);
+//                            dataOrc.setBarCode(qr);
+//                            System.out.println("1");
+                                System.out.println(2);
+                                break;
+                            case "TTQT_TTTM_0002":
 //                            String txt = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
 //                            String[] data = txt.split("\\s");
 //                            dataOrc.setAmount(data[20]);
@@ -57,9 +60,9 @@ public class OcrService implements OcrServiceImpl {
 //                            dataOrc.setBeneficiary(concat(data));
 //                            dataOrc.setResult(txt);
 //                            dataOrc.setBarCode(qr);
-                            System.out.println("2");
-                            break;
-                        case "TTQT_CTQT_0001":
+                                System.out.println("2");
+                                break;
+                            case "TTQT_CTQT_0001":
 //                            String re = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
 //                            String[] s = re.split("\\s");
 //                            String address = address(s);
@@ -68,19 +71,41 @@ public class OcrService implements OcrServiceImpl {
 //                            dataOrc.setCmnd(cmnd);
 //                            dataOrc.setResult(re);
 //                            dataOrc.setBarCode(qr);
-                            System.out.println("3");
-                            break;
-                        default:
-                            String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath(),qr);
-                            dataOrc.setResult(str);
+                                System.out.println("3");
+                                break;
+                            default:
+//                            String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath(), qr);
+//                            dataOrc.setResult(str);
+                        }
+
                     }
                 }
+                document1.close();
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
         return dataOrc;
+    }
+
+    public static List<PDDocument> Documents(PDDocument document, Tesseract tesseract, String path) throws IOException, TesseractException {
+        PDFRenderer pdfRenderer = new PDFRenderer(document);
+        BufferedImage bufferedImage;
+        String result = null;
+        List<PDDocument> documents = new ArrayList<>();
+        for (int page = 0; page < document.getNumberOfPages(); page++) {
+            bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+            File tempFile = File.createTempFile("tempfile_" + page, ".png");
+            ImageIO.write(bufferedImage, "png", tempFile);
+            result = tesseract.doOCR(tempFile);
+            System.out.println(result);
+            if (result.equals("")) {
+                documents = splitFilePdf(path, page);
+                break;
+            }
+        }
+        return documents;
     }
 
     public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String filePath, String code) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
@@ -92,7 +117,7 @@ public class OcrService implements OcrServiceImpl {
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
-            Rectangle rectangle = getRectangle(code);
+//            Rectangle rectangle = getRectangle(code);
             ImageIO.write(bufferedImage, "png", tempFile);
             result = tesseract.doOCR(tempFile);
             out.append(result);
@@ -130,17 +155,15 @@ public class OcrService implements OcrServiceImpl {
             for (int page = 0; page < document.getNumberOfPages(); page++) {
                 BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
                 BufferedImage crop = cropImage(bufferedImage, 1860, 55, 550, 320);
+//                bufferedImage.getSubimage(1860, 55, 550, 320);
                 File file = new File(String.format("ToImage-img-%d.png", page));
                 ImageIO.write(crop, "png", file);
                 String result = readBarcode(file);
                 System.out.println("result: " + result);
-                if (!result.equals("")) {
-                    barcodes.add(result);
-                }
+                barcodes.add(result);
             }
             return barcodes;
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
@@ -163,7 +186,7 @@ public class OcrService implements OcrServiceImpl {
         return convFile;
     }
 
-    public static void splitFilePdf(String filePath, int index) throws IOException {
+    public static List<PDDocument> splitFilePdf(String filePath, int index) throws IOException {
         File file = new File(filePath);
         PDDocument document = PDDocument.load(file);
         Splitter splitter = new Splitter();
@@ -173,31 +196,47 @@ public class OcrService implements OcrServiceImpl {
         int i = 1;
         while (iterator.hasNext()) {
             PDDocument pd = iterator.next();
-            pd.save("C:\\Users\\datlb\\Downloads\\" + i++ + ".pdf");
+            pd.save("E:\\PdfFile\\" + i++ + ".pdf");
         }
         System.out.println("Multiple PDF files are created successfully.");
-        document.close();
+        return Pages;
     }
 
+//    public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
+//        try {
+//            InputStream barCodeInputStream = new FileInputStream(file);
+//            BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
+//            BinaryBitmap bitmap = null;
+//            LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
+//            bitmap = new BinaryBitmap(new HybridBinarizer(source));
+//            Reader reader = new MultiFormatReader();
+//            Result re = reader.decode(bitmap);
+//            if (re.getText() != null) {
+//                return re.getText();
+//            } else {
+//                return "";
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            System.out.println(e);
+//        }
+//        return "";
+//    }
+
     public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
+        InputStream barCodeInputStream = new FileInputStream(file);
+        BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
+        LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
+        BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+        Reader reader = new MultiFormatReader();
+        Result re = null;
         try {
-            InputStream barCodeInputStream = new FileInputStream(file);
-            BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
-            BinaryBitmap bitmap = null;
-            LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
-            bitmap = new BinaryBitmap(new HybridBinarizer(source));
-            Reader reader = new MultiFormatReader();
-            Result re = reader.decode(bitmap);
-            if (re.getText() != null) {
-                return re.getText();
-            } else {
-                return "";
-            }
+            re = reader.decode(bitmap);
+            System.out.println("Barcode text is " + re.getText());
+            return re.getText().toString();
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e);
+            return "barCode null";
         }
-        return "";
     }
 
     public static String checkBox(String[] data) {

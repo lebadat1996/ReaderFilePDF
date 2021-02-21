@@ -4,34 +4,26 @@ import com.google.zxing.*;
 import com.google.zxing.Reader;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
-import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.RandomAccessFileOrArray;
 import com.spire.pdf.PdfDocument;
-import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.RandomAccessBufferedFileInputStream;
-import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 public class MainTest {
@@ -96,13 +88,13 @@ public class MainTest {
 //        // Encoding charset
 //
 //        readBarCode
-//        File file = new File("C:\\Users\\datlb\\Downloads\\1.pdf");
-//        FileInputStream input = new FileInputStream(file);
-//        MultipartFile multipartFile = new MockMultipartFile("file",
-//                file.getName(), "text/plain", IOUtils.toByteArray(input));
-//        File convert = convert(multipartFile);
-//        PDDocument document = PDDocument.load(convert);
-////        checkQRPdf(document);
+        File file = new File("E:\\PdfFile\\3.pdf");
+        FileInputStream input = new FileInputStream(file);
+        MultipartFile multipartFile = new MockMultipartFile("file",
+                file.getName(), "text/plain", IOUtils.toByteArray(input));
+        File convert = convert(multipartFile);
+        PDDocument document = PDDocument.load(convert);
+        checkQRPdf(document);
 ////        convertPDFtoImage("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
 //        Tesseract tesseract = new Tesseract();
 //        tesseract.setDatapath("./tessdata");
@@ -195,21 +187,18 @@ public class MainTest {
         return convFile;
     }
 
-    public static String checkQRPdf(PDDocument document) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+    public static void checkQRPdf(PDDocument document) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         StringBuilder out = new StringBuilder();
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+//            bufferedImage.getSubimage(1860, 50, 550, 300);
             BufferedImage crop = cropImage(bufferedImage, 1860, 50, 550, 300);
             File file = new File(String.format("ToImage-img-%d.png", page));
             ImageIO.write(crop, "png", file);
             String result = readBarcode(file);
             out.append(result);
-            if (result != null) {
-                return out.toString();
-            }
         }
-        return out.toString();
     }
 
     public static void convertPDFtoImage(String path) throws IOException {
@@ -227,13 +216,17 @@ public class MainTest {
     public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
         InputStream barCodeInputStream = new FileInputStream(file);
         BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
-
         LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
         BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
         Reader reader = new MultiFormatReader();
-        Result re = reader.decode(bitmap);
-        System.out.println("Barcode text is " + re.getText());
-        return re.getText().toString();
+        Result re = null;
+        try {
+            re = reader.decode(bitmap);
+            System.out.println("Barcode text is " + re.getText());
+            return re.getText().toString();
+        } catch (Exception e) {
+            return "reader error";
+        }
     }
 
     public static void readCheckBox(String path) throws IOException {
