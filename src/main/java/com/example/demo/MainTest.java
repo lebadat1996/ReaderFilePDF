@@ -88,7 +88,7 @@ public class MainTest {
 //        // Encoding charset
 //
 //        readBarCode
-        File file = new File("E:\\PdfFile\\3.pdf");
+        File file = new File("E:\\DemoPDF\\ReaderFilePDF\\1.pdf");
         FileInputStream input = new FileInputStream(file);
         MultipartFile multipartFile = new MockMultipartFile("file",
                 file.getName(), "text/plain", IOUtils.toByteArray(input));

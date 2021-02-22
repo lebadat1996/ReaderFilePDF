@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.io.*;
+import java.util.List;
 
 @Controller
 public class OcrController {
@@ -35,7 +36,7 @@ public class OcrController {
 
     @PostMapping("/uploadFile")
     public ModelAndView uploadFile(@RequestParam("file") MultipartFile file) throws DocumentException, IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
-        DataOrc dataOrc = ocrService.result(file);
+        List<DataOrc> dataOrc = ocrService.result(file);
         ModelAndView modelAndView = new ModelAndView("index");
         if (dataOrc != null) {
             modelAndView.addObject("message", "success");
@@ -47,7 +48,7 @@ public class OcrController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<DataOrc> upload(@RequestParam("file") MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException {
+    public ResponseEntity<List<DataOrc>> upload(@RequestParam("file") MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException {
         return new ResponseEntity<>(ocrService.result(file), HttpStatus.OK);
     }
 }

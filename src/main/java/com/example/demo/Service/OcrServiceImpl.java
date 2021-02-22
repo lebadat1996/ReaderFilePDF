@@ -10,7 +10,8 @@ import org.ghost4j.document.DocumentException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface OcrServiceImpl {
-    DataOrc result(MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException;
+    List<DataOrc> result(MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException;
 }
