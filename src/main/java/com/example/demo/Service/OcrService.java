@@ -5,10 +5,13 @@ import com.google.zxing.*;
 import com.google.zxing.Reader;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
+import com.testautomationguru.utility.PDFUtil;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageTree;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.ghost4j.document.DocumentException;
@@ -22,6 +25,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -42,7 +46,7 @@ public class OcrService implements OcrServiceImpl {
                     switch (qr) {
                         case "TTQT_TTTM_0001":
                             DataOrc dataOrc = new DataOrc();
-                            String ttqt01 = extractTextFromScannedDocument(document, tesseract);
+                            String ttqt01 = extractTextFromScannedDocument(document, tesseract, qr);
                             String[] ttq = ttqt01.split("\\s");
                             dataOrc.setFormOfCredit(checkBox(ttq));
                             dataOrc.setResult(ttqt01);
@@ -51,27 +55,29 @@ public class OcrService implements OcrServiceImpl {
                             System.out.println("TTQT_TTTM_0001");
                             break;
                         case "TTQT_TTTM_0002":
-//                            String txt = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
-//                            String[] data = txt.split("\\s");
-//                            dataOrc.setAmount(data[20]);
-//                            dataOrc.setLetterCredit(data[6]);
-//                            dataOrc.setIssueDate(data[13]);
-//                            dataOrc.setBeneficiary(concat(data));
-//                            dataOrc.setResult(txt);
-//                            dataOrc.setBarCode(qr);
+                            DataOrc dataOrcs = new DataOrc();
+                            String txt = extractTextFromScannedDocument(document, tesseract, qr);
+                            String[] data = txt.split("\\s");
+                            dataOrcs.setAmount(data[20]);
+                            dataOrcs.setLetterCredit(data[6]);
+                            dataOrcs.setIssueDate(data[13]);
+                            dataOrcs.setBeneficiary(concat(data));
+                            dataOrcs.setResult(txt);
+                            dataOrcs.setBarCode(qr);
+                            dataOrcList.add(dataOrcs);
                             System.out.println("TTQT_TTTM_0002");
                             break;
                         case "TTQT_CTQT_0001":
-                            DataOrc data = new DataOrc();
-                            String re = extractTextFromScannedDocument(document, tesseract);
+                            DataOrc datas = new DataOrc();
+                            String re = extractTextFromScannedDocument(document, tesseract, qr);
                             String[] s = re.split("\\s");
                             String address = address(s);
                             String cmnd = cmnd(s);
-                            data.setAddress(address);
-                            data.setCmnd(cmnd);
-                            data.setResult(re);
-                            data.setBarCode(qr);
-                            dataOrcList.add(data);
+                            datas.setAddress(address);
+                            datas.setCmnd(cmnd);
+                            datas.setResult(re);
+                            datas.setBarCode(qr);
+                            dataOrcList.add(datas);
                             System.out.println("TTQT_CTQT_0001");
                             break;
                         default:
@@ -84,6 +90,8 @@ public class OcrService implements OcrServiceImpl {
 
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            pDdocument.close();
         }
         return dataOrcList;
     }
@@ -95,6 +103,7 @@ public class OcrService implements OcrServiceImpl {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         BufferedImage bufferedImage;
         String result = null;
+        PDDocument pdDocument = new PDDocument();
         List<PDDocument> documents = new ArrayList<>();
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
@@ -102,16 +111,22 @@ public class OcrService implements OcrServiceImpl {
             ImageIO.write(bufferedImage, "png", tempFile);
             result = tesseract.doOCR(tempFile);
             if (result.equals("")) {
-                documents = splitFilePdf(document, page);
+                documents = splitFilePdf(document, page, tesseract);
                 break;
             } else {
-                documents.add(document);
+                PDPage pdPages = document.getPage(page);
+                pdDocument.addPage(pdPages);
             }
         }
+        if (documents.isEmpty()) {
+            documents.add(pdDocument);
+        }
+        System.out.println("size: " + documents.size());
         return documents;
     }
 
-    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+
+    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String code) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         StringBuilder out = new StringBuilder();
         BufferedImage bufferedImage = null;
@@ -120,12 +135,9 @@ public class OcrService implements OcrServiceImpl {
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
-//            Rectangle rectangle = getRectangle(code);
+            Rectangle rectangle = getRectangle(code);
             ImageIO.write(bufferedImage, "png", tempFile);
             result = tesseract.doOCR(tempFile);
-            if (result.equals("")) {
-                document.removePage(page);
-            }
             out.append(result);
         }
         return out.toString();
@@ -205,7 +217,7 @@ public class OcrService implements OcrServiceImpl {
         return convFile;
     }
 
-    public static List<PDDocument> splitFilePdf(PDDocument document, int index) throws IOException, TesseractException {
+    public static List<PDDocument> splitFilePdf(PDDocument document, int index, Tesseract tesseract) throws IOException, TesseractException {
         Splitter splitter = new Splitter();
         splitter.setSplitAtPage(index);
         List<PDDocument> pdDocuments = splitter.split(document);
@@ -213,7 +225,9 @@ public class OcrService implements OcrServiceImpl {
         int i = 1;
         while (iterator.hasNext()) {
             PDDocument pd = iterator.next();
-            pd.save("E:\\DemoPDF\\ReaderFilePDF\\" + i++ + ".pdf");
+//            pd.save("E:\\PdfFile\\" + i++ + ".pdf");
+//            pd.getNumberOfPages();
+            Documents(pd, tesseract);
         }
         System.out.println("Multiple PDF files are created successfully.");
         return pdDocuments;
