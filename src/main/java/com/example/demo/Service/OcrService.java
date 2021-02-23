@@ -38,54 +38,59 @@ public class OcrService implements OcrServiceImpl {
         try {
             for (PDDocument document : documents) {
                 List<String> codeQr = checkQRPdf(document);
-                for (String qr : codeQr) {
-                    switch (qr) {
-                        case "TTQT_TTTM_0001":
-                            DataOrc dataOrc = new DataOrc();
-                            String ttqt01 = extractTextFromScannedDocument(document, tesseract);
-                            String[] ttq = ttqt01.split("\\s");
-                            dataOrc.setFormOfCredit(checkBox(ttq));
-                            dataOrc.setResult(ttqt01);
-                            dataOrc.setBarCode(qr);
-                            dataOrcList.add(dataOrc);
-                            System.out.println("TTQT_TTTM_0001");
-                            break;
-                        case "TTQT_TTTM_0002":
-//                            String txt = extractTextFromScannedDocument(document, tesseract, convFile.getPath());
-//                            String[] data = txt.split("\\s");
-//                            dataOrc.setAmount(data[20]);
-//                            dataOrc.setLetterCredit(data[6]);
-//                            dataOrc.setIssueDate(data[13]);
-//                            dataOrc.setBeneficiary(concat(data));
-//                            dataOrc.setResult(txt);
-//                            dataOrc.setBarCode(qr);
-                            System.out.println("TTQT_TTTM_0002");
-                            break;
-                        case "TTQT_CTQT_0001":
-                            DataOrc data = new DataOrc();
-                            String re = extractTextFromScannedDocument(document, tesseract);
-                            String[] s = re.split("\\s");
-                            String address = address(s);
-                            String cmnd = cmnd(s);
-                            data.setAddress(address);
-                            data.setCmnd(cmnd);
-                            data.setResult(re);
-                            data.setBarCode(qr);
-                            dataOrcList.add(data);
-                            System.out.println("TTQT_CTQT_0001");
-                            break;
-                        default:
-//                            String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath(), qr);
-//                            dataOrc.setResult(str);
-                    }
-
-                }
+                extractDocument(dataOrcList, codeQr, document, tesseract);
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
         return dataOrcList;
+    }
+
+    public static void extractDocument(List<DataOrc> dataOrcList, List<String> qrCode, PDDocument document, Tesseract tesseract) throws TesseractException, FormatException, ChecksumException, NotFoundException, IOException {
+        for (String qr : qrCode) {
+            switch (qr) {
+                case "TTQT_TTTM_0001":
+                    DataOrc dataOrc = new DataOrc();
+                    String ttqt01 = extractTextFromScannedDocument(document, tesseract, qr);
+                    String[] ttq = ttqt01.split("\\s");
+                    dataOrc.setFormOfCredit(checkBox(ttq));
+                    dataOrc.setResult(ttqt01);
+                    dataOrc.setBarCode(qr);
+                    dataOrcList.add(dataOrc);
+                    System.out.println("TTQT_TTTM_0001");
+                    break;
+                case "TTQT_TTTM_0002":
+                    DataOrc dataOrcs = new DataOrc();
+                    String txt = extractTextFromScannedDocument(document, tesseract, qr);
+                    String[] data = txt.split("\\s");
+                    dataOrcs.setAmount(data[20]);
+                    dataOrcs.setLetterCredit(data[6]);
+                    dataOrcs.setIssueDate(data[13]);
+                    dataOrcs.setBeneficiary(concat(data));
+                    dataOrcs.setResult(txt);
+                    dataOrcs.setBarCode(qr);
+                    dataOrcList.add(dataOrcs);
+                    System.out.println("TTQT_TTTM_0002");
+                    break;
+                case "TTQT_CTQT_0001":
+                    DataOrc data1 = new DataOrc();
+                    String re = extractTextFromScannedDocument(document, tesseract, qr);
+                    String[] s = re.split("\\s");
+                    String address = address(s);
+                    String cmnd = cmnd(s);
+                    data1.setAddress(address);
+                    data1.setCmnd(cmnd);
+                    data1.setResult(re);
+                    data1.setBarCode(qr);
+                    dataOrcList.add(data1);
+                    System.out.println("TTQT_CTQT_0001");
+                    break;
+                default:
+//                            String str = extractTextFromScannedDocument(document, tesseract, convFile.getPath(), qr);
+//                            dataOrc.setResult(str);
+            }
+
+        }
     }
 
     //bỏ Path
@@ -111,7 +116,7 @@ public class OcrService implements OcrServiceImpl {
         return documents;
     }
 
-    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
+    public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String code) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         StringBuilder out = new StringBuilder();
         BufferedImage bufferedImage = null;
@@ -120,12 +125,9 @@ public class OcrService implements OcrServiceImpl {
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
             File tempFile = File.createTempFile("tempfile_" + page, ".png");
-//            Rectangle rectangle = getRectangle(code);
+            Rectangle rectangle = getRectangle(code);
             ImageIO.write(bufferedImage, "png", tempFile);
-            result = tesseract.doOCR(tempFile);
-            if (result.equals("")) {
-                document.removePage(page);
-            }
+            result = tesseract.doOCR(tempFile, rectangle);
             out.append(result);
         }
         return out.toString();

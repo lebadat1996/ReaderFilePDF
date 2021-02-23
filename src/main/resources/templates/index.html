@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<script src="../js/button.js"></script>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -8,59 +9,105 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <script language="JavaScript" src="/js/button.js"></script>
+    <style>
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 50px;
+            height: 50px;
+            -webkit-animation: spin 2s linear infinite; /* Safari */
+            animation: spin 2s linear infinite;
+            margin-left: 650px;
+        }
+
+        /* Safari */
+        @-webkit-keyframes spin {
+            0% {
+                -webkit-transform: rotate(0deg);
+            }
+            100% {
+                -webkit-transform: rotate(360deg);
+            }
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+
 </head>
 <body>
-<form method="post" th:action="@{/uploadFile}" enctype="multipart/form-data">
-    <h3 th:text="${message}" style="text-align: center;color: red"></h3>
-    <br>
-    <div style="margin-left: 400px;margin-top: 50px">
-        <input type="file" name="file" required>
-        <br>
-        <button type="submit" class="registerbtn">submit</button>
-    </div>
-</form>
-<hr>
 
-<br>
-<table th:each="d :  ${data}" class="table table-dark" border="2" style="margin-top: 20px">
-    <h3 th:text="${d.barCode}" style="text-align: center ;color: red" ></h3>
-    <thead>
-    <tr>
-        <th scope="col">id</th>
-        <th scope="col">letterCredit</th>
-        <th scope="col">issueDate</th>
-        <th scope="col">amount</th>
-        <th scope="col">Beneficiary</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <th scope="col">1</th>
-        <td><p th:text="${d.letterCredit}"/></td>
-        <td><p th:text="${d.issueDate}"/></td>
-        <td><p th:text="${d.amount}"/></td>
-        <td><p th:text="${d.beneficiary}"/></td>
-    </tr>
-    </tbody>
-</table>
+
+<div id="hiddens">
+    <form method="post" th:action="@{/uploadFile}" enctype="multipart/form-data">
+        <h3 th:text="${message}" style="text-align: center;color: red"></h3>
+        <br>
+        <div style="margin-left: 400px;margin-top: 50px">
+            <input type="file" name="file" required>
+            <br>
+            <button type="submit" id="btn" class="registerbtn">submit</button>
+        </div>
+    </form>
+</div>
 <hr>
-<table class="table" border="2">
-    <thead>
-    <tr>
-        <th scope="col">id</th>
-        <th scope="col">Cmnd</th>
-        <th scope="col">Address</th>
-        <th scope="col">formOfCredit</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="d :  ${data}">
-        <th scope="col">1</th>
-        <td><p th:text="${d.cmnd}"></p></td>
-        <td><p th:text="${d.address}"></p></td>
-        <td><p th:text="${d.formOfCredit}"></p></td>
-    </tr>
-    </tbody>
-</table>
+<br>
+<div class="loader" style="display: none" id="demo">
+</div>
+<div id="hidden">
+    <table th:each="d :  ${data}" class="table table-dark" border="2" style="margin-top: 20px">
+        <h3 th:text="${d.barCode}" style="text-align: center ;color: red"></h3>
+        <thead>
+        <tr>
+            <th scope="col">letterCredit</th>
+            <th scope="col">issueDate</th>
+            <th scope="col">amount</th>
+            <th scope="col">Beneficiary</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+
+            <td><p th:text="${d.letterCredit}"/></td>
+            <td><p th:text="${d.issueDate}"/></td>
+            <td><p th:text="${d.amount}"/></td>
+            <td><p th:text="${d.beneficiary}"/></td>
+        </tr>
+        </tbody>
+    </table>
+    <hr>
+    <table class="table" border="2">
+        <thead>
+        <tr>
+
+            <th scope="col">Cmnd</th>
+            <th scope="col">Address</th>
+            <th scope="col">formOfCredit</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="d :  ${data}">
+            <th scope="col">1</th>
+            <td><p th:text="${d.cmnd}"></p></td>
+            <td><p th:text="${d.address}"></p></td>
+            <td><p th:text="${d.formOfCredit}"></p></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+<script language="javascript">
+    document.getElementById("btn").onclick = function () {
+        document.getElementById("demo").style.display = 'block';
+        document.getElementById("hidden").style.display = 'none';
+        document.getElementById("hiddens").style.display = 'none';
+    };
+</script>
 </body>
 </html>
