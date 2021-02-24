@@ -14,4 +14,6 @@ import java.util.List;
 
 public interface OcrServiceImpl {
     List<DataOrc> result(MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException;
+
 }
+

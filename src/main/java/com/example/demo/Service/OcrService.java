@@ -9,6 +9,7 @@ import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.ghost4j.document.DocumentException;
@@ -17,17 +18,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
+import javax.print.Doc;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 public class OcrService implements OcrServiceImpl {
     @Autowired
     Tesseract tesseract;
+
 
     @Override
     public List<DataOrc> result(MultipartFile file) throws IOException, TesseractException, DocumentException, NotFoundException, FormatException, ChecksumException {
@@ -100,6 +104,7 @@ public class OcrService implements OcrServiceImpl {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         BufferedImage bufferedImage;
         String result = null;
+        PDDocument pdDocument = new PDDocument();
         List<PDDocument> documents = new ArrayList<>();
         for (int page = 0; page < document.getNumberOfPages(); page++) {
             bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
@@ -107,13 +112,37 @@ public class OcrService implements OcrServiceImpl {
             ImageIO.write(bufferedImage, "png", tempFile);
             result = tesseract.doOCR(tempFile);
             if (result.equals("")) {
-                documents = splitFilePdf(document, page);
+                document.removePage(page);
+                documents = splitFilePdf(document, page, tesseract);
                 break;
             } else {
-                documents.add(document);
+                PDPage pdPage = document.getPage(page);
+                pdDocument.addPage(pdPage);
             }
         }
+        if (documents.isEmpty()) {
+            documents.add(pdDocument);
+        }
+        System.out.println("size: " + documents.size());
         return documents;
+    }
+
+    public static int checkPageWhite(PDDocument pdDocument, Tesseract tesseract) throws IOException, TesseractException {
+        PDFRenderer pdfRenderer = new PDFRenderer(pdDocument);
+        BufferedImage bufferedImage;
+        String result = null;
+        int index = 0;
+        for (int page = 0; page < pdDocument.getNumberOfPages(); page++) {
+            bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
+            File tempFile = File.createTempFile("tempfile_" + page, ".png");
+            ImageIO.write(bufferedImage, "png", tempFile);
+            result = tesseract.doOCR(tempFile);
+            if (result.equals("")) {
+                index = page;
+                break;
+            }
+        }
+        return index;
     }
 
     public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String code) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
@@ -156,24 +185,6 @@ public class OcrService implements OcrServiceImpl {
         return null;
     }
 
-    //    public static List<String> checkQRPdf(PDDocument document) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
-//        try {
-//            PDFRenderer pdfRenderer = new PDFRenderer(document);
-//            List<String> barcodes = new ArrayList<>();
-//            for (int page = 0; page < document.getNumberOfPages(); page++) {
-//                BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
-//                BufferedImage crop = cropImage(bufferedImage, 1860, 55, 550, 320);
-////                bufferedImage.getSubimage(1860, 55, 550, 320);
-//                File file = new File(String.format("ToImage-img-%d.png", page));
-//                ImageIO.write(crop, "png", file);
-//                String result = readBarcode(file);
-//                barcodes.add(result);
-//            }
-//            return barcodes;
-//        } catch (Exception e) {
-//            return null;
-//        }
-//    }
     public static List<String> checkQRPdf(PDDocument document) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         List<String> barcodes = new ArrayList<>();
@@ -207,40 +218,32 @@ public class OcrService implements OcrServiceImpl {
         return convFile;
     }
 
-    public static List<PDDocument> splitFilePdf(PDDocument document, int index) throws IOException, TesseractException {
+    public static List<PDDocument> splitFilePdf(PDDocument document, int index, Tesseract tesseract) throws IOException, TesseractException {
         Splitter splitter = new Splitter();
         splitter.setSplitAtPage(index);
         List<PDDocument> pdDocuments = splitter.split(document);
         Iterator<PDDocument> iterator = pdDocuments.listIterator();
-        int i = 1;
+        List<PDDocument> documentList = new ArrayList<>();
+        List<PDDocument> documents = new ArrayList<>();
+        int a = 1;
         while (iterator.hasNext()) {
             PDDocument pd = iterator.next();
-            pd.save("E:\\DemoPDF\\ReaderFilePDF\\" + i++ + ".pdf");
+            pd.save("E:\\DemoPDF\\ReaderFilePDF\\" + a++ + ".pdf");
+            int indexPage = checkPageWhite(pd, tesseract);
+            if (indexPage != 0) {
+                pd.removePage(indexPage);
+                pdDocuments = splitFilePdf(pd, indexPage, tesseract);
+            } else {
+                documents.add(pd);
+            }
         }
+        documentList.addAll(pdDocuments);
+        documentList.addAll(documents);
+        System.out.println(documentList.size() + " :sizeList");
         System.out.println("Multiple PDF files are created successfully.");
-        return pdDocuments;
+        return documentList.stream().distinct().collect(Collectors.toList());
     }
 
-//    public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
-//        try {
-//            InputStream barCodeInputStream = new FileInputStream(file);
-//            BufferedImage barCodeBufferedImage = ImageIO.read(barCodeInputStream);
-//            BinaryBitmap bitmap = null;
-//            LuminanceSource source = new BufferedImageLuminanceSource(barCodeBufferedImage);
-//            bitmap = new BinaryBitmap(new HybridBinarizer(source));
-//            Reader reader = new MultiFormatReader();
-//            Result re = reader.decode(bitmap);
-//            if (re.getText() != null) {
-//                return re.getText();
-//            } else {
-//                return "";
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            System.out.println(e);
-//        }
-//        return "";
-//    }
 
     public static String readBarcode(File file) throws IOException, FormatException, ChecksumException, NotFoundException {
         InputStream barCodeInputStream = new FileInputStream(file);

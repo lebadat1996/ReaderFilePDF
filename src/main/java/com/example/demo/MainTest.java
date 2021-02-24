@@ -4,26 +4,35 @@ import com.google.zxing.*;
 import com.google.zxing.Reader;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
+import com.itextpdf.text.pdf.PdfWriter;
+import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.RandomAccessFileOrArray;
 import com.spire.pdf.PdfDocument;
+import com.spire.pdf.PdfPageBase;
+import com.spire.pdf.graphics.PdfMargins;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 import org.apache.pdfbox.cos.COSDocument;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.RandomAccessBufferedFileInputStream;
+import org.apache.pdfbox.multipdf.Splitter;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
 import org.apache.pdfbox.text.PDFTextStripper;
+import org.apache.pdfbox.tools.PDFMerger;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 public class MainTest {
@@ -58,78 +67,82 @@ public class MainTest {
     // Driver code
     public static void main(String[] args)
             throws Exception {
-
-//        // Path where the QR code is saved
-//        PdfDocument pdf = new PdfDocument();
-//        pdf.loadFromFile("C:/Users/Admin/Downloads/L.C_V1.2.pdf");
-//
-//        //save every PDF to .png image
-//        BufferedImage image;
-//        for (int i = 0; i < pdf.getPages().getCount(); i++) {
-//            image = pdf.saveAsImage(i);
-//            BufferedImage crop = cropImage(image, 600, 20, 170, 100);
-//            File file = new File(String.format("ToImage-img-%d.png", i));
-////            File file = File.createTempFile("ToImage-img-%d" + i, ".png");
-//            ImageIO.write(crop, "png", file);
-//            String charset = "UTF-8";
-//
-//            Map<EncodeHintType, ErrorCorrectionLevel> hashMap
-//                    = new HashMap<EncodeHintType,
-//                    ErrorCorrectionLevel>();
-//
-//            hashMap.put(EncodeHintType.ERROR_CORRECTION,
-//                    ErrorCorrectionLevel.L);
-//            System.out.println(file.getAbsolutePath());
-//            System.out.println(
-//                    "QRCode output: "
-//                            + readQRCode(file.getAbsolutePath(), charset, hashMap));
+//        File pdffile
+//                = new File("C:\\Users\\datlb\\Downloads\\Demo 1.pdf");
+//        PDDocument document = PDDocument.load(pdffile);
+//        com.itextpdf.text.pdf.PdfReader pdfReader = new com.itextpdf.text.pdf.PdfReader("C:\\Users\\datlb\\Downloads\\Demo 1.pdf");
+//        int pages = pdfReader.getNumberOfPages();
+//        String pdfText = "";
+//        for (int ctr = 1; ctr < pages + 1; ctr++) {
+//            pdfText += PdfTextExtractor.getTextFromPage(pdfReader, ctr); // Page number cannot be 0 or will throw NPE
+//            if (pdfText.equals("")) {
+//                System.out.println("page: " + ctr);
+//            }
 //        }
-//        pdf.close();
-//        // Encoding charset
-//
-//        readBarCode
-        File file = new File("E:\\DemoPDF\\ReaderFilePDF\\1.pdf");
-        FileInputStream input = new FileInputStream(file);
-        MultipartFile multipartFile = new MockMultipartFile("file",
-                file.getName(), "text/plain", IOUtils.toByteArray(input));
-        File convert = convert(multipartFile);
-        PDDocument document = PDDocument.load(convert);
-        checkQRPdf(document);
-////        convertPDFtoImage("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
-//        Tesseract tesseract = new Tesseract();
-//        tesseract.setDatapath("./tessdata");
-//        String result = extractTextFromScannedDocument(document, tesseract, null);
-//        System.out.println(result);
-//        readCheckBox("C:/Users/Admin/Downloads/MB01_LENH_CHUYEN_TIEN_BARCODE_v3.1.pdf");
-
-        //Loading an existing PDF document
-//        File file = new File("C:\\Users\\datlb\\Downloads\\demo 2.pdf");
-//        PDDocument document = PDDocument.load(file);
-
-        // Create a Splitter object
+//        pdfReader.close();
+//        return pdfText;
 //        Splitter splitter = new Splitter();
-//
-//        splitter.setSplitAtPage(5);
-////        p2 = splitter.setSplitAtPage(3);
-//        //splitting the pages of a PDF document
-//        List<PDDocument> Pages = splitter.split(document);
-//
-//        //Creating an iterator object
-//        Iterator<PDDocument> iterator = Pages.listIterator();
-//
-//        //saving splits as individual PDF document
+//        List<PDDocument> pdDocuments = splitter.split(document);
+//        Iterator<PDDocument> iterator = pdDocuments.listIterator();
 //        int i = 1;
 //        while (iterator.hasNext()) {
 //            PDDocument pd = iterator.next();
-//            pd.save("C:\\Users\\datlb\\Downloads\\" + i++ + ".pdf");
+//            pd.save("E:\\DemoPDF\\ReaderFilePDF\\" + i++ + ".pdf");
 //        }
 //        System.out.println("Multiple PDF files are created successfully.");
-//        document.close();
-//    }
-//
-
+        split();
     }
 
+    public static void splitPDF() throws IOException {
+        File pdffile
+                = new File("E:\\DemoPDF\\ReaderFilePDF\\Demo 1.pdf");
+        String FILE1 = "/uploads/first.pdf";
+        String OUTPUT_FOLDER = "/myfiles/";
+        PDDocument document = PDDocument.load(pdffile);
+        Splitter splitter = new Splitter();
+        splitter.setSplitAtPage(4);
+        List<PDDocument> pdDocuments = splitter.split(document);
+        Iterator<PDDocument> iterator = pdDocuments.listIterator();
+        int i = 1;
+        while (iterator.hasNext()) {
+            PDDocument pd = iterator.next();
+            pd.save("E:\\DemoPDF\\ReaderFilePDF\\" + i++ + ".pdf");
+
+        }
+        System.out.println("Multiple PDF files are created successfully.");
+    }
+
+    public static void split() {
+        //Load the PDF file
+        PdfDocument doc = new PdfDocument();
+        doc.loadFromFile("E:\\DemoPDF\\ReaderFilePDF\\Demo 1.pdf");
+
+        //Create a new PDF file
+        PdfDocument newDoc1 = new PdfDocument();
+
+        PdfPageBase page;
+
+        //Add 2 pages to the new PDF, and draw the content of page 1-2 of the original PDF to the newly added pages
+        for (int i = 0; i < 4; i++) {
+            page = newDoc1.getPages().add(doc.getPages().get(i).getSize(), new PdfMargins(0));
+            doc.getPages().get(i).createTemplate().draw(page, new Point2D.Float(0, 0));
+        }
+
+        //Save the result file
+        newDoc1.saveToFile("split/Doc1.pdf");
+
+        //Create a new PDF file
+        PdfDocument newDoc2 = new PdfDocument();
+
+        //Add 3 pages to the new PDF, and draw the content of page 3-5 of the original PDF to the newly added pages
+        for (int i = 4; i < 10; i++) {
+            page = newDoc2.getPages().add(doc.getPages().get(i).getSize(), new PdfMargins(0));
+            doc.getPages().get(i).createTemplate().draw(page, new Point2D.Float(0, 0));
+        }
+
+        //Save the result file
+        newDoc2.saveToFile("split/Doc2.pdf");
+    }
 
     public static String extractTextFromScannedDocument(PDDocument document, Tesseract tesseract, String filePath) throws IOException, TesseractException, NotFoundException, FormatException, ChecksumException {
         PDFRenderer pdfRenderer = new PDFRenderer(document);
